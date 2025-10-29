@@ -73,8 +73,6 @@ This project aims to assist caregivers by providing a **real-time video surveill
 
 ![Architecture Diagram](doc/OP-03.jpg)
 
-![Architecture Diagram](doc/OP-06.jpg)
-
 ![Architecture Diagram](doc/OP-04.jpg)
 
 ![Architecture Diagram](doc/OP-05.jpg)
