@@ -28,8 +28,8 @@ This project aims to assist caregivers by providing a **real-time video surveill
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/bharathts04/Intelligent-Video-Surveillance-System-for-Alzheimer-patient.git
-   cd Intelligent-Video-Surveillance-System-for-Alzheimer-patient
+   git clone https://github.com/bharathts04/Intelligent-Video-Surveillance-System.git
+   cd Intelligent-Video-Surveillance-System
 2. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
