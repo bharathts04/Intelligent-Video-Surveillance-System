@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Surveillance System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: url("/static/sample_img.png");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        #boundary-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16 / 9;
+        }
+        #first-frame-img, #boundary-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0.5rem;
+        }
+        #boundary-canvas {
+            z-index: 10;
+            cursor: crosshair;
+        }
+        #first-frame-img {
+            z-index: 1;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            position: relative;
+            background-color: #2d3748;
+            margin: 15% auto;
+            padding: 24px;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 500px;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-gray-800 shadow-md">
+        <div class="container mx-auto px-4 py-4">
+            <h1 class="text-2xl font-bold text-white">AI Video Surveillance System</h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 mt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Left Column: Controls -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                
+                <!-- Step 1: Input Source -->
+                <div class="bg-gray-800 rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">Step 1: Select Input Source</h2>
+                    
+                    <fieldset class="space-y-4">
+                        <div class="flex items-center">
+                            <input id="source-webcam" name="source_type" type="radio" value="0" class="h-4 w-4 text-indigo-600 border-gray-600 focus:ring-indigo-500" checked>
+                            <label for="source-webcam" class="ml-3 block text-sm font-medium text-gray-300">Webcam (Default)</label>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input id="source-path" name="source_type" type="radio" value="path" class="h-4 w-4 text-indigo-600 border-gray-600 focus:ring-indigo-500">
+                            <label for="source-path" class="ml-3 block text-sm font-medium text-gray-300">Video File Path</label>
+                        </div>
+                        <input type="text" id="video-path-input" placeholder="e.g., C:\videos\my_video.mp4" class="block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-gray-200 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </fieldset>
+
+                    <button id="load-video-btn" class="mt-6 w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-150 ease-in-out">
+                        Load Video
+                    </button>
+                </div>
+
+                <!-- Step 2: Define Boundary -->
+                <div id="boundary-controls" class="bg-gray-800 rounded-lg shadow p-6 hidden">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-gray-700 pb-2">Step 2: Define Boundary</h2>
+                    <p class="text-sm text-gray-400 mb-4">Click on the image to draw the monitoring zone (at least 3 points). The boundary will close automatically.</p>
+                    <div class="flex space-x-4">
+                        <button id="clear-boundary-btn" class="w-1/2 bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-150 ease-in-out">
+                            Reset
+                        </button>
+                        <button id="start-monitoring-btn" class="w-1/2 bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition duration-150 ease-in-out" disabled>
+                            Start Monitoring
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Video Display -->
+            <div class="lg:col-span-2 bg-gray-800 rounded-lg shadow p-6 min-h-[400px]">
+                
+                <!-- Boundary Definition View -->
+                <div id="boundary-view">
+                    <h2 class="text-xl font-semibold mb-4">Video Preview</h2>
+                    <div id="boundary-container" class="bg-gray-900 rounded-lg flex items-center justify-center">
+                        <img id="first-frame-img" src="https://placehold.co/800x450/2d3748/667eea?text=Click+'Load+Video'+to+preview" alt="Video Preview">
+                        <canvas id="boundary-canvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Live Feed View -->
+                <div id="live-feed-view" class="hidden">
+                    <h2 class="text-xl font-semibold mb-4">Live Feed</h2>
+                    <div class="relative bg-gray-900 rounded-lg">
+                        <img id="live-feed-img" src="https://placehold.co/800x450/2d3748/667eea?text=Monitoring+will+start+here..." alt="Live Feed" class="w-full rounded-lg">
+                    </div>
+                    <button id="stop-monitoring-btn" class="mt-4 w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition duration-150 ease-in-out">
+                        Stop Monitoring
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Alert Modal -->
+    <div id="alert-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-lg font-bold mb-4">Alert</h3>
+            <p id="modal-body">This is an alert message.</p>
+            <button id="modal-close-btn" class="mt-6 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700">
+                Close
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- State ---
+            let boundaryPoints = [];
+            let canvas = document.getElementById('boundary-canvas');
+            let ctx = canvas.getContext('2d');
+            let firstFrameImg = document.getElementById('first-frame-img');
+            let boundaryContainer = document.getElementById('boundary-container');
+            let nativeFrameWidth = 0;
+            let nativeFrameHeight = 0;
+
+            // --- Elements ---
+            const loadVideoBtn = document.getElementById('load-video-btn');
+            const boundaryControls = document.getElementById('boundary-controls');
+            const clearBoundaryBtn = document.getElementById('clear-boundary-btn');
+            const startMonitoringBtn = document.getElementById('start-monitoring-btn');
+            const boundaryView = document.getElementById('boundary-view');
+            const liveFeedView = document.getElementById('live-feed-view');
+            const liveFeedImg = document.getElementById('live-feed-img');
+            const stopMonitoringBtn = document.getElementById('stop-monitoring-btn');
+            const videoPathInput = document.getElementById('video-path-input');
+
+            // --- Modal Elements ---
+            const modal = document.getElementById('alert-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+
+            // --- Functions ---
+
+            function showAlert(title, message) {
+                modalTitle.textContent = title;
+                modalBody.textContent = message;
+                modal.style.display = 'block';
+            }
+
+            modalCloseBtn.onclick = () => { modal.style.display = 'none'; };
+            window.onclick = (event) => {
+                if (event.target == modal) modal.style.display = 'none';
+            };
+            
+            function resizeCanvas() {
+                const imgWidth = firstFrameImg.clientWidth;
+                const imgHeight = firstFrameImg.clientHeight;
+                
+                boundaryContainer.style.aspectRatio = `${imgWidth} / ${imgHeight}`;
+                canvas.width = imgWidth;
+                canvas.height = imgHeight;
+                drawBoundary();
+            }
+
+            function drawBoundary() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (boundaryPoints.length === 0) return;
+
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(boundaryPoints[0].x, boundaryPoints[0].y);
+                for (let i = 1; i < boundaryPoints.length; i++) {
+                    ctx.lineTo(boundaryPoints[i].x, boundaryPoints[i].y);
+                }
+                if (boundaryPoints.length >= 3) {
+                    ctx.closePath();
+                }
+                ctx.stroke();
+
+                ctx.fillStyle = '#ff0000';
+                boundaryPoints.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            }
+
+            function handleCanvasClick(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                boundaryPoints.push({ x, y });
+                drawBoundary();
+
+                if (boundaryPoints.length >= 3) {
+                    startMonitoringBtn.disabled = false;
+                }
+            }
+
+            // --- Event Listeners ---
+
+            // 1. Load First Frame
+            loadVideoBtn.addEventListener('click', async () => {
+                showAlert('Loading', 'Fetching first frame from server...');
+                loadVideoBtn.disabled = true;
+                loadVideoBtn.textContent = 'Loading...';
+
+                let sourceValue = document.querySelector('input[name="source_type"]:checked').value;
+                if (sourceValue === 'path') {
+                    sourceValue = videoPathInput.value;
+                }
+
+                if (sourceValue === 'path' && !videoPathInput.value) {
+                    showAlert('Error', 'Please enter a video file path.');
+                    loadVideoBtn.disabled = false;
+                    loadVideoBtn.textContent = 'Load Video';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/load_source', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ source: sourceValue })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || 'Server error');
+                    }
+
+                    // Get image data as a Blob
+                    const imageBlob = await response.blob();
+                    const imageUrl = URL.createObjectURL(imageBlob);
+                    
+                    firstFrameImg.src = imageUrl;
+                    firstFrameImg.onload = () => {
+                        // Store native dimensions
+                        nativeFrameWidth = firstFrameImg.naturalWidth;
+                        nativeFrameHeight = firstFrameImg.naturalHeight;
+                        
+                        resizeCanvas();
+                        boundaryControls.classList.remove('hidden');
+                        showAlert('Success', 'First frame loaded. Click on the image to define the monitoring zone.');
+                    };
+                    firstFrameImg.onerror = () => {
+                        throw new Error('Failed to display first frame image.');
+                    }
+                } catch (error) {
+                    console.error('Error loading video:', error);
+                    showAlert('Error', `Failed to load video: ${error.message}`);
+                } finally {
+                    loadVideoBtn.disabled = false;
+                    loadVideoBtn.textContent = 'Load Video';
+                }
+            });
+
+            // 2. Clear Boundary
+            clearBoundaryBtn.addEventListener('click', () => {
+                boundaryPoints = [];
+                drawBoundary();
+                startMonitoringBtn.disabled = true;
+            });
+
+            // 3. Start Monitoring
+            startMonitoringBtn.addEventListener('click', async () => {
+                if (nativeFrameWidth === 0 || nativeFrameHeight === 0) {
+                    showAlert('Error', 'Frame dimensions not set. Please reload video.');
+                    return;
+                }
+
+                // Scale points from canvas size to native video resolution
+                const scaledPoints = boundaryPoints.map(p => {
+                    return [
+                        Math.round((p.x / canvas.width) * nativeFrameWidth),
+                        Math.round((p.y / canvas.height) * nativeFrameHeight)
+                    ];
+                });
+
+                const payload = {
+                    boundary_points: scaledPoints
+                };
+
+                try {
+                    const response = await fetch('/api/start_monitoring', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || 'Server error');
+                    }
+
+                    showAlert('Success', 'Monitoring started! Switching to live feed.');
+
+                    boundaryView.classList.add('hidden');
+                    boundaryControls.classList.add('hidden');
+                    liveFeedView.classList.remove('hidden');
+
+                    // Set the image src to the backend's video stream endpoint
+                    // Add a timestamp to prevent browser caching
+                    liveFeedImg.src = `/api/video_stream?t=${new Date().getTime()}`;
+                
+                } catch (error) {
+                    console.error('Error starting monitoring:', error);
+                    showAlert('Error', `Failed to start monitoring: ${error.message}`);
+                }
+            });
+
+            // 4. Stop Monitoring
+            stopMonitoringBtn.addEventListener('click', async () => {
+                try {
+                    await fetch('/api/stop_monitoring', { method: 'POST' });
+                } catch (error) {
+                    console.error("Error stopping monitoring:", error);
+                } finally {
+                    // Always reset the UI
+                    liveFeedImg.src = 'https://placehold.co/800x450/2d3748/667eea?text=Monitoring+Stopped';
+                    
+                    liveFeedView.classList.add('hidden');
+                    boundaryView.classList.remove('hidden');
+                    loadVideoBtn.disabled = false;
+                    clearBoundaryBtn.click();
+                    nativeFrameWidth = 0;
+                    nativeFrameHeight = 0;
+                }
+            });
+
+            // --- Init ---
+            videoPathInput.disabled = true;
+            document.querySelectorAll('input[name="source_type"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    videoPathInput.disabled = (e.target.value !== 'path');
+                });
+            });
+
+            new ResizeObserver(resizeCanvas).observe(boundaryContainer);
+            resizeCanvas();
+            canvas.addEventListener('click', handleCanvasClick);
+        });
+    </script>
+</body>
+</html>
+
