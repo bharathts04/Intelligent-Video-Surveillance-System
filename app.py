@@ -27,9 +27,9 @@ except Exception as e:
     exit()
 
 # --- Email Alert Configuration ---
-SENDER_EMAIL = "bharathamurthy@gmail.com"    # The email you are sending from (e.g., "your-email@gmail.com")
-SENDER_PASSWORD = "kfcmluvqimaydjyn" # The 16-character App Password you generated
-RECIPIENT_EMAIL = "bharathamurthy@gmail.com" # The email you are sending alerts to
+SENDER_EMAIL = ""    # The email you are sending from (e.g., "your-email@gmail.com")
+SENDER_PASSWORD = "" # The 16-character App Password you generated
+RECIPIENT_EMAIL = "" # The email you are sending alerts to
 
 # --- Alert Cooldown Configuration ---
 ALERT_COOLDOWN_SECONDS = 60 
@@ -479,3 +479,4 @@ if __name__ == "__main__":
     # run this script from the same directory where the HTML file is saved.
     # Flask will automatically create a 'static' route.
     app.run(debug=True, host='0.0.0.0', threaded=True, use_reloader=False)
+
